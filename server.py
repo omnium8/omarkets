@@ -7,6 +7,7 @@ import base64
 import hashlib
 import json
 import os
+import random
 import re
 import socket
 import ssl
@@ -46,7 +47,11 @@ TV_WS_PATH = "/socket.io/websocket"
 MAX_HTTP_BYTES = 1_500_000
 HTTP_TIMEOUT = 12
 QUOTE_CACHE_TTL = 60
-CHART_GAP_SEC = 1.0  # hard gap between every chart fetch
+CHART_GAP_MIN = 1.0  # randomized gap between chart fetches (1–2s, never bursts)
+CHART_GAP_MAX = 2.0
+CHART_REFRESH_SEC = 12 * 60  # re-pull each sparkline at most this often (5m bars)
+CHART_REFRESH_JITTER = 90  # ± seconds per symbol so they don't all refresh at once
+CHART_IDLE_SEC = 5.0  # warm-loop sleep when nothing needs a refresh
 
 # Friendly / $ticker / legacy Yahoo → TradingView
 ALIASES = {
@@ -410,14 +415,14 @@ def tradingview_quotes(symbols: list[str]) -> dict[str, dict]:
 
 
 def _chart_throttle() -> None:
-    """Serialize all chart fetches with CHART_GAP_SEC between them."""
+    """Serialize all chart fetches, 1–2s apart (randomized so calls never burst)."""
     global _chart_next
     with _chart_lock:
         now = time.time()
         wait = _chart_next - now
         if wait > 0:
             time.sleep(wait)
-        _chart_next = time.time() + CHART_GAP_SEC
+        _chart_next = time.time() + random.uniform(CHART_GAP_MIN, CHART_GAP_MAX)
 
 
 def _ws_send_text(ssock: ssl.SSLSocket, text: str) -> None:
@@ -626,11 +631,15 @@ def warm_charts_loop():
                 sym = entry["symbol"]
                 with _cache_lock:
                     hit = _quote_cache.get(sym)
+                # `seriesTs` tracks when the sparkline itself was last pulled;
+                # price refreshes bump `ts` but not this, so charts refresh on
+                # their own slow cadence, not every quote poll. `seriesTtl` is a
+                # per-symbol jittered interval so they don't all come due at once.
                 if (
                     hit
                     and hit["data"].get("series")
-                    and not hit["data"].get("stale")
-                    and time.time() - hit["ts"] < QUOTE_CACHE_TTL
+                    and time.time() - hit["data"].get("seriesTs", 0)
+                    < hit["data"].get("seriesTtl", CHART_REFRESH_SEC)
                 ):
                     continue
                 try:
@@ -653,6 +662,10 @@ def warm_charts_loop():
                         )
                     if series:
                         data["series"] = series
+                        data["seriesTs"] = time.time()
+                        data["seriesTtl"] = CHART_REFRESH_SEC + random.uniform(
+                            -CHART_REFRESH_JITTER, CHART_REFRESH_JITTER
+                        )
                         data["stale"] = False
                         data["error"] = None
                         data["source"] = source
@@ -666,7 +679,7 @@ def warm_charts_loop():
                     print(f"chart {sym} fail: {e}", flush=True)
                     continue
             if not fetched_any:
-                time.sleep(CHART_GAP_SEC)
+                time.sleep(CHART_IDLE_SEC)
         except Exception as e:
             print(f"warm loop error: {e}", flush=True)
             time.sleep(10)
@@ -784,9 +797,14 @@ class Handler(BaseHTTPRequestHandler):
                         )
                         with _cache_lock:
                             prev = _quote_cache.get(sym)
-                            keep_series = (prev or {}).get("data", {}).get("series") or series
+                            prev_data = (prev or {}).get("data", {})
+                            keep_series = prev_data.get("series") or series
                             stored = dict(q)
                             stored["series"] = keep_series
+                            # preserve the chart's own timestamp + jittered ttl;
+                            # a price hint must not reset the sparkline's clock
+                            stored["seriesTs"] = prev_data.get("seriesTs", 0)
+                            stored["seriesTtl"] = prev_data.get("seriesTtl", CHART_REFRESH_SEC)
                             _quote_cache[sym] = {"ts": time.time(), "data": stored}
                             q["series"] = keep_series
                     q = dict(q)

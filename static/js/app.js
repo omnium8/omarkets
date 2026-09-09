@@ -1,5 +1,5 @@
 (() => {
-  const REFRESH_MS = 60_000;
+  const REFRESH_MS = 120_000;  // price poll (one cheap batched request); charts refresh server-side ~12m
   const THEME_MS = 5_000;
 
   const els = {
@@ -486,6 +486,11 @@
   els.addSymbol.addEventListener("blur", () => setTimeout(closeAc, 100));
 
   els.refresh.addEventListener("click", () => fetchQuotes(true));
+
+  // Browsers throttle timers in hidden windows; refresh right away on return.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) fetchQuotes(false);
+  });
 
   loadTheme();
   fetchQuotes(true);
