@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Start Omarkets, open as a Chromium app window, stop the server when the window closes.
+set -euo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]:-$0}")"
+ROOT="$(cd "$(dirname "$SELF")" && pwd)"
+PORT="${OMARKETS_PORT:-1987}"
+HOST="${OMARKETS_HOST:-127.0.0.1}"
+URL="http://${HOST}:${PORT}/"
+PIDFILE="$ROOT/omarkets.pid"
+LOGFILE="$ROOT/omarkets.log"
+PROFILE="${XDG_STATE_HOME:-$HOME/.local/state}/omarkets/chromium-profile"
+
+cd "$ROOT"
+mkdir -p "$(dirname "$PROFILE")"
+
+is_up() {
+  curl -fsS --max-time 1 "$URL" >/dev/null 2>&1
+}
+
+stop_server() {
+  if [[ -f "$PIDFILE" ]]; then
+    local pid
+    pid="$(cat "$PIDFILE" 2>/dev/null || true)"
+    if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+      # wait briefly for clean exit
+      for _ in $(seq 1 20); do
+        kill -0 "$pid" 2>/dev/null || break
+        sleep 0.05
+      done
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+    rm -f "$PIDFILE"
+  fi
+  # belt-and-suspenders if pidfile was stale
+  if is_up; then
+    fuser -k "${PORT}/tcp" 2>/dev/null || true
+  fi
+}
+
+start_server() {
+  stop_server
+  nohup python3 "$ROOT/server.py" >>"$LOGFILE" 2>&1 &
+  echo $! >"$PIDFILE"
+  for _ in $(seq 1 50); do
+    if is_up; then
+      return 0
+    fi
+    sleep 0.1
+  done
+  echo "Omarkets failed to start — see $LOGFILE" >&2
+  exit 1
+}
+
+resolve_browser() {
+  local desktop bin
+  desktop="$(xdg-settings get default-web-browser 2>/dev/null || true)"
+  case "$desktop" in
+    google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium* | chromium*) ;;
+    *) desktop="chromium.desktop" ;;
+  esac
+  bin="$(
+    sed -n 's/^Exec=\([^ ]*\).*/\1/p' \
+      {"$HOME/.local","$HOME/.nix-profile","/usr"}/share/applications/"$desktop" 2>/dev/null \
+      | head -1
+  )"
+  if [[ -z "$bin" || ! -x "$(command -v "${bin##*/}" 2>/dev/null || true)" && ! -x "$bin" ]]; then
+    bin="$(command -v chromium || command -v chromium-browser || command -v google-chrome-stable || true)"
+  fi
+  if [[ -z "$bin" ]]; then
+    echo "No Chromium-based browser found for --app mode" >&2
+    exit 1
+  fi
+  printf '%s\n' "$bin"
+}
+
+trap stop_server EXIT INT TERM
+
+start_server
+
+BROWSER="$(resolve_browser)"
+# Dedicated profile so this process owns the window and stays alive until close.
+# (Default --app often attaches to an existing session and returns immediately.)
+"$BROWSER" \
+  --user-data-dir="$PROFILE" \
+  --class=Omarkets \
+  --name=Omarkets \
+  --app="$URL" \
+  --no-first-run \
+  --no-default-browser-check \
+  --disable-features=Translate \
+  >/dev/null 2>&1

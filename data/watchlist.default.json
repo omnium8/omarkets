@@ -1,0 +1,15 @@
+{
+  "symbols": [
+    {"symbol": "SP:SPX", "group": "indices", "label": "S&P 500"},
+    {"symbol": "TVC:DJI", "group": "indices", "label": "Dow Jones"},
+    {"symbol": "TVC:IXIC", "group": "indices", "label": "Nasdaq"},
+    {"symbol": "XETR:DAX", "group": "indices", "label": "DAX"},
+    {"symbol": "TVC:US10Y", "group": "fixed_income", "label": "US 10Y Yield"},
+    {"symbol": "TVC:US01Y", "group": "fixed_income", "label": "US 1Y Yield"},
+    {"symbol": "COMEX:GC1!", "group": "commodities", "label": "Gold"},
+    {"symbol": "COMEX:SI1!", "group": "commodities", "label": "Silver"},
+    {"symbol": "NYMEX:CL1!", "group": "commodities", "label": "Crude Oil"},
+    {"symbol": "CRYPTO:BTCUSD", "group": "crypto", "label": "Bitcoin"},
+    {"symbol": "CRYPTO:ETHUSD", "group": "crypto", "label": "Ethereum"}
+  ]
+}

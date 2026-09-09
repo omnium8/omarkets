@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Omarkets</title>
+  <link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <span class="brand-name">Omarkets</span>
+        <span class="brand-sub" id="status">loading…</span>
+      </div>
+      <div class="top-actions">
+        <button type="button" id="btn-refresh" class="btn">refresh</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="main-col" aria-label="Market cards">
+        <div id="cards" class="cards"></div>
+      </section>
+
+      <aside class="side" aria-label="Watchlist">
+        <div class="side-head">
+          <h2>watchlist</h2>
+        </div>
+        <div class="add-wrap">
+          <form id="add-form" class="add-form" autocomplete="off">
+            <input id="add-symbol" name="symbol" type="text" maxlength="40"
+                   placeholder="$AAPL or NASDAQ:AAPL" spellcheck="false"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false"
+                   aria-controls="ac" />
+            <button type="submit" class="btn">add</button>
+          </form>
+          <ul id="ac" class="ac" role="listbox" hidden></ul>
+        </div>
+        <div id="watchlist" class="watchlist"></div>
+        <p class="hint">TradingView · $SPX · AAPL · CRYPTO:BTCUSD · SP:SPX</p>
+      </aside>
+    </main>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

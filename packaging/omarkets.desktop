@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Omarkets
+GenericName=Markets Watchlist
+Comment=Local TradingView watchlist dashboard for Omarchy
+Exec=omarkets
+Icon=omarkets
+Terminal=false
+Categories=Finance;Office;
+Keywords=stocks;markets;tradingview;watchlist;finance;tickers;
+StartupNotify=true
+StartupWMClass=Omarkets

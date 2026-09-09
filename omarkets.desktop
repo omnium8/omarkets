@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Omarkets
+Comment=Local Yahoo Finance watchlist dashboard
+Exec=/home/omnium/dev/omarkets/omarkets
+Icon=utilities-system-monitor
+Terminal=false
+Categories=Finance;Office;
+StartupNotify=false
+Keywords=stocks;markets;yahoo;watchlist;

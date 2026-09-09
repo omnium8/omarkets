@@ -1,0 +1,4 @@
+omarkets.log
+omarkets.pid
+__pycache__/
+*.pyc
