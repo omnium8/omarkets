@@ -1,6 +1,8 @@
 # Omarkets
 
-Local TradingView watchlist dashboard for Omarchy — mono UI, theme-aware cards with intraday charts.
+Local TradingView watchlist dashboard for Omarchy. A small Python server
+serves a mono UI of theme-aware cards with live prices and intraday
+sparklines. Quotes come from TradingView; the watchlist lives on disk.
 
 ## Omarchy app
 
@@ -14,6 +16,23 @@ Then open **Walker → Omarkets** (or run `omarkets`). It starts the local serve
 ./scripts/uninstall-omarchy.sh   # removes launcher; keeps ~/.local/state/omarkets/
 ```
 
+## Usage
+
+Launch with `omarkets` after install, or from the repo:
+
+```bash
+python3 server.py
+```
+
+Then open [http://127.0.0.1:1987/](http://127.0.0.1:1987/).
+
+- **Add** a symbol in the right panel: `$AAPL`, `gold`, `solana`, or `NASDAQ:AAPL`
+- **Reorder** by dragging cards or watchlist rows (they share one order)
+- **Click** a card to select it and switch 5m / D / W / M charts
+- **Remove** a symbol with × on its watchlist row
+- **Refresh** prices from the header (the page also polls on its own)
+
+Watchlist lives at `~/.local/state/omarkets/watchlist.json`.
 
 ## Features
 
@@ -24,8 +43,6 @@ Then open **Walker → Omarkets** (or run `omarkets`). It starts the local serve
   (top ~1000 US stocks + top 100 crypto, commodities, and fixed income)
 - Follows Omarchy theme (`~/.local/state/omarchy/current/theme/colors.toml`)
 - Default list: indices, rates, commodities, crypto
-
-Watchlist lives at `~/.local/state/omarkets/watchlist.json`.
 
 ## Symbols
 
